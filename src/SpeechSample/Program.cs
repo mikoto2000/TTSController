@@ -13,7 +13,7 @@ namespace SpeechSample
         {
             // 利用可能な音声合成エンジンを列挙
             // Windows 10 (x64) 上での VOICEROID+, VOICEROID2, SAPI5 に対応
-            var engines = SpeechController.GetAllSpeechEngine();
+            var engines = SpeechController.GetVoiceroid2SpeechEngine();
             foreach(var c in engines)
             {
                 Console.WriteLine($"{c.LibraryName},{c.EngineName},{c.EnginePath}");
@@ -24,7 +24,7 @@ namespace SpeechSample
             string name = Console.ReadLine().Trim();
 
             // 対象となるライブラリを実行
-            var engine = SpeechController.GetInstance(name);
+            var engine = SpeechController.GetVoiceroid2Instance(name);
             if(engine == null)
             {
                 Console.WriteLine($"{name} を起動できませんでした。");
@@ -38,13 +38,24 @@ namespace SpeechSample
             engine.Play("こんにちは");
             engine.SetPitch(1.00f);
 
+            string fileName = "";
             string line = "";
             do
             {
+                Console.WriteLine($"保存ファイル名を入力: ");
+                fileName = Console.ReadLine();
+                Console.WriteLine($"読み上げテキストを入力: ");
                 line = Console.ReadLine();
-                Console.WriteLine($"Volume: {engine.GetVolume()}, Speed: {engine.GetSpeed()}, Pitch: {engine.GetPitch()}, PitchRange: {engine.GetPitchRange()}");
+                Console.WriteLine($"Volume: {engine.GetVolume()}, Speed: {engine.GetSpeed()}, Pitch: {engine.GetPitch()}, PitchRange: {engine.GetPitchRange()} to {fileName}");
                 engine.Stop(); // 喋っている途中に文字が入力されたら再生をストップ
-                engine.Play(line);
+                if (fileName == "")
+                {
+                    engine.Play(line);
+                }
+                else
+                {
+                    engine.Save(fileName, line);
+                }
             } while (line != "");
             engine.Dispose();
         }

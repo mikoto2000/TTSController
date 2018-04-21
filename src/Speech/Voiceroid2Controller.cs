@@ -1,6 +1,7 @@
 ﻿using Codeer.Friendly;
 using Codeer.Friendly.Windows;
 using Codeer.Friendly.Windows.Grasp;
+using Codeer.Friendly.Windows.NativeStandardControls;
 using RM.Friendly.WPFStandardControls;
 using System;
 using System.Collections.Generic;
@@ -214,9 +215,9 @@ namespace Speech
         /// <param name="text">再生する文字列</param>
         public void Play(string text)
         {
-            SetText(text);
+            SetTextAndPlay(text);
         }
-        private void SetText(string text)
+        private void SetTextAndPlay(string text)
         {
             string t = _libraryName + _promptString + text;
             if (_queue.Count == 0)
@@ -242,6 +243,94 @@ namespace Speech
             _isPlaying = true;
             _isRunning = false;
             _timer.Start();
+        }
+
+        /// <summary>
+        /// 指定した文字列を音声保存します
+        /// </summary>
+        /// <param name="text">音声保存する文字列</param>
+        public void Save(string outputFilePath, string text)
+        {
+            SetTextAndSave(outputFilePath, text);
+        }
+
+        private void SetTextAndSave(string outputFilePath, string text)
+        {
+            string t = _libraryName + _promptString + text;
+            if (_queue.Count == 0)
+            {
+                WPFTextBox textbox = new WPFTextBox(_root.IdentifyFromLogicalTreeIndex(0, 4, 3, 5, 3, 0, 2));
+                textbox.EmulateChangeText(t);
+                Save(outputFilePath);
+            }
+            else
+            {
+                _queue.Enqueue(t);
+            }
+        }
+
+        /// <summary>
+        /// VOICEROID2 に入力された文字列を保存します
+        /// </summary>
+        private void Save(string outputFilePath)
+        {
+            // 「音声保存」ボタン押下
+            WPFButtonBase saveButton = new WPFButtonBase(_root.IdentifyFromLogicalTreeIndex(0, 4, 3, 5, 3, 0, 3, 5));
+            saveButton.EmulateClick(new Async());
+            Application.DoEvents();
+
+            // 音声保存設定ダイアログの OK ボタン押下
+            var saveWindow = WindowControl.GetFromWindowText(_app, "音声保存")[0];
+            WPFButtonBase saveOkButton = new WPFButtonBase(saveWindow.IdentifyFromLogicalTreeIndex(0, 1, 0));
+            saveOkButton.EmulateClick(new Async());
+            Application.DoEvents();
+
+            // 「名前を付けて保存」ダイアログで出力ファイル名を入力して OK ボタン押下
+            WindowControl saveDialog = WindowControl.WaitForIdentifyFromWindowText(_app, "名前を付けて保存");
+            NativeButton saveDialogButton = new NativeButton(saveDialog.IdentifyFromDialogId(1));
+            NativeEdit saveFileNameTextBox = new NativeEdit(saveDialog.IdentifyFromZIndex(11, 0, 4, 0, 0));
+            saveFileNameTextBox.EmulateChangeText(outputFilePath);
+            Application.DoEvents();
+            saveDialogButton.EmulateClick(new Async());
+            Application.DoEvents();
+
+            // 上書き確認ダイアログが出てきたら、 OK ボタンを押下
+            // 出てくる前提で作っているけど、なぜか出ない場合でも問題なく動いているっぽい。
+            while (true)
+            {
+                try {
+                    WindowControl saveConfirmDialog = WindowControl.IdentifyFromWindowText(_app, "名前を付けて保存");
+                    NativeButton saveConfirmDialogButton = new NativeButton(saveConfirmDialog.IdentifyFromDialogId(6));
+                    saveConfirmDialogButton.EmulateClick(new Async());
+                    Application.DoEvents();
+                }
+                catch (WindowIdentifyException e)
+                {
+                    // do nothing
+                }
+
+                // 保存成功通知ダイアログの OK ボタンを押下
+                try {
+                    WindowControl infoDialog = WindowControl.IdentifyFromWindowText(_app, "情報");
+                    NativeButton infoDialogButton = new NativeButton(infoDialog.IdentifyFromDialogId(2));
+                    infoDialogButton.EmulateClick(new Async());
+                    Application.DoEvents();
+                    break;
+                }
+                catch (WindowIdentifyException e)
+                {
+                    // do nothing
+                }
+
+                Thread.Sleep(100);
+            }
+
+            // おまじない
+            // 再生の時もこれやっているので、何か意味があるのだろう。
+            _isPlaying = false;
+            _isRunning = false;
+            _timer.Start();
+
         }
         /// <summary>
         /// VOICEROID2 の再生を停止します（停止ボタンを押す）

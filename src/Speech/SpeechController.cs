@@ -20,11 +20,7 @@ namespace Speech
             }
 
             // VOICEROID2 を列挙
-            var voiceroid2 = new Voiceroid2Enumerator();
-            if(voiceroid2.GetSpeechEngineInfo().Length > 0)
-            {
-                info.AddRange(voiceroid2.GetSpeechEngineInfo());
-            }
+            info.AddRange(GetVoiceroid2SpeechEngine());
 
             // SAPI5 を列挙
             var sapi5 = new SAPI5Enumerator();
@@ -33,14 +29,41 @@ namespace Speech
             return info.ToArray();
         }
 
+        public static SpeechEngineInfo[] GetVoiceroid2SpeechEngine()
+        {
+            List<SpeechEngineInfo> info = new List<SpeechEngineInfo>();
+
+            // VOICEROID2 を列挙
+            var voiceroid2 = new Voiceroid2Enumerator();
+            if (voiceroid2.GetSpeechEngineInfo().Length > 0)
+            {
+                info.AddRange(voiceroid2.GetSpeechEngineInfo());
+            }
+
+            return info.ToArray();
+        }
+
         public static ISpeechEngine GetInstance(string libraryName)
         {
             var info = GetAllSpeechEngine();
+            foreach (var e in info)
+            {
+                if (e.LibraryName == libraryName)
+                {
+                    return GetInstance(e);
+                }
+            }
+            return null;
+        }
+
+        public static Voiceroid2Controller GetVoiceroid2Instance(string libraryName)
+        {
+            var info = GetVoiceroid2SpeechEngine();
             foreach(var e in info)
             {
                 if(e.LibraryName == libraryName)
                 {
-                    return GetInstance(e);
+                    return (Voiceroid2Controller)GetInstance(e);
                 }
             }
             return null;
